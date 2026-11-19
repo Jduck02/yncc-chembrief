@@ -9,7 +9,7 @@ import type {
   VerifiedSource,
 } from '../src/types/news.ts';
 import { GEMINI_MODEL, getGeminiClient } from './gemini.ts';
-import { FALLBACK_IMAGE_MAP } from './seedData.ts';
+import { normalizeArticleKeywords } from './keywords.ts';
 import { saveBriefing } from './store.ts';
 import { formatKstDateTime, getKstDateString } from './time.ts';
 
@@ -23,6 +23,7 @@ interface CandidateArticle {
   rawBody: string;
   criteriaCategory: CriteriaCategory;
   departments: Department[];
+  keywords: string[];
   relevanceScore: number;
   fallbackImageKey: FallbackImageKey;
 }
@@ -37,6 +38,7 @@ interface RawCandidatePayload {
     rawBody?: string;
     criteriaCategory?: string;
     departments?: string[];
+    keywords?: string[];
     relevanceScore?: number;
     fallbackImageKey?: string;
   }>;
@@ -58,6 +60,7 @@ interface FactCheckPayload {
     summary?: string;
     ynccImplication?: string;
     fullText?: string;
+    keywords?: string[];
     exactArticleUrl?: string;
     verifiedSourceTitles?: string[];
   }>;
@@ -314,37 +317,6 @@ async function findExactArticleUrlForCandidate(
   }
 }
 
-async function resolveOgImage(url: string, fallbackKey: FallbackImageKey): Promise<string> {
-  const fallback = FALLBACK_IMAGE_MAP[fallbackKey];
-  if (!url || !url.startsWith('http')) {
-    return fallback;
-  }
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2500);
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; YNCC-ChemBrief/1.0)',
-      },
-    });
-    clearTimeout(timer);
-    if (!res.ok) return fallback;
-    const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('text/html')) return fallback;
-    const html = (await res.text()).slice(0, 40000);
-    const ogMatch =
-      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i) ||
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
-    const imgUrl = ogMatch?.[1]?.trim();
-    if (imgUrl && imgUrl.startsWith('https://')) {
-      return imgUrl;
-    }
-    return fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 export async function runNewsScrapePipeline(
   triggerType: 'scheduled_09kst' | 'manual',
@@ -389,7 +361,7 @@ Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최�
       "viewCount": null,
       "rawBody": "기사 본문의 핵심 팩트, 수치, 기업명, 규제 내용, 배경을 포함한 3~4문단 한국어 요약 본문",
       "criteriaCategory": "글로벌 수급·원료 | 국내 정책·단지 | NCC 마진·가동률 | 실무·리스크 관리 중 택1",
-      "departments": ["영업", "구매", "생산", "안전", "환경 중 해당하는 것들"],
+      "keywords": ["핵심키워드1", "핵심키워드2", "핵심키워드3", "핵심키워드4"],
       "relevanceScore": 85,
       "fallbackImageKey": "ncc_plant_night | crude_naphtha_terminal | refinery_piping_detail | global_energy_port | plant_control_safety 중 택1"
     }
@@ -454,6 +426,12 @@ Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최�
         rawBody: (item.rawBody || item.title || '').trim(),
         criteriaCategory: normalizeCategory(item.criteriaCategory),
         departments: normalizeDepartments(item.departments),
+        keywords: normalizeArticleKeywords(
+          item.keywords,
+          item.title || '',
+          normalizeCategory(item.criteriaCategory),
+          item.rawBody || ''
+        ),
         relevanceScore:
           typeof item.relevanceScore === 'number'
             ? Math.min(100, Math.max(1, Math.round(item.relevanceScore)))
@@ -649,7 +627,8 @@ ${JSON.stringify(
 3. "summary": **반드시 5문장 이내**로 작성하고, 마지막 1~2문장에는 여천NCC 관점(영업/구매/생산/안전/환경)의 구체적 시사점을 반드시 포함하십시오.
 4. "ynccImplication": 여천NCC 실무 부서별 즉각 참고 포인트 1~2문장.
 5. "fullText": 기사 상세 창에서 읽을 수 있도록 배경, 핵심 수치, 업계 영향, 여천NCC 시사점을 포함한 충실하고 정제된 한국어 기사 전문 (3~4문단, 문단 사이는 \\n\\n으로 구분).
-6. "exactArticleUrl": 개별 기사를 직접 여는 정확한 원문 링크 URL.
+6. "keywords": 검열·팩트체크 과정에서 기사 본문 내용을 대표하는 핵심 키워드 **최소 3개에서 최대 6개**를 선별하여 배열로 작성하십시오. 부서명(영업·구매·생산·안전·환경)은 제외하고, '#' 기호와 띄어쓰기 없이 간결한 산업/주제 키워드(예: ["에틸렌스프레드", "나프타", "NCC가동률", "손익분기점"])로 작성하십시오.
+7. "exactArticleUrl": 개별 기사를 직접 여는 정확한 원문 링크 URL.
 
 검증 대상 후보:
 ${JSON.stringify(
@@ -659,7 +638,7 @@ ${JSON.stringify(
     sourceName: s.sourceName,
     sourceUrl: s.sourceUrl,
     publishedAt: s.publishedAt,
-    departments: s.departments,
+    initialKeywords: s.keywords,
     rawBody: s.rawBody,
   })),
   null,
@@ -677,6 +656,7 @@ ${JSON.stringify(
       "summary": "5문장 이내 핵심 요약 및 여천NCC 시사점",
       "ynccImplication": "여천NCC 실무 적용 포인트",
       "fullText": "문단1\\n\\n문단2\\n\\n문단3",
+      "keywords": ["에틸렌스프레드", "나프타", "NCC가동률", "손익분기점"],
       "exactArticleUrl": "https://...",
       "verifiedSourceTitles": ["교차 확인된 출처명1", "출처명2"]
     }
@@ -730,10 +710,7 @@ ${JSON.stringify(
     }
 
     const articleId = `live-${todayKst}-${crypto.randomUUID().slice(0, 8)}`;
-    const thumbnailUrl = await resolveOgImage(
-      finalArticleUrl,
-      candidate.fallbackImageKey
-    );
+    const thumbnailUrl = '';
 
     const combinedSources: VerifiedSource[] = [];
     const seenUris = new Set<string>();
@@ -769,12 +746,17 @@ ${JSON.stringify(
       fallbackImageKey: candidate.fallbackImageKey,
       publishedAt: candidate.publishedAt,
       viewCount: candidate.viewCount,
-      departments: candidate.departments,
+      keywords: normalizeArticleKeywords(
+        fc?.keywords && fc.keywords.length > 0 ? fc.keywords : candidate.keywords,
+        candidate.title,
+        candidate.criteriaCategory,
+        fc?.fullText || candidate.rawBody
+      ),
       criteriaCategory: candidate.criteriaCategory,
       relevanceScore: candidate.relevanceScore,
       ynccImplication:
         fc?.ynccImplication ||
-        `${candidate.departments.join('·')} 부서의 원료·수급·리스크 대응 계획 반영 권고.`,
+        '원료 조달·가동률·리스크 대응 계획에 본 이슈의 시장 영향 반영 권고.',
       factCheckStatus: 'verified',
       factCheckSummary:
         fc?.factCheckSummary ||

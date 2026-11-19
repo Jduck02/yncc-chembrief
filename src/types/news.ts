@@ -51,7 +51,8 @@ export interface NewsArticle {
   fallbackImageKey: FallbackImageKey;
   publishedAt: string;
   viewCount: number | null;
-  departments: Department[];
+  keywords: string[];
+  departments?: Department[];
   criteriaCategory: CriteriaCategory;
   relevanceScore: number;
   ynccImplication: string;

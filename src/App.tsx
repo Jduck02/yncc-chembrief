@@ -9,7 +9,6 @@ import { WorkspaceToolbar } from './components/WorkspaceToolbar';
 import type {
   BriefingsResponse,
   DailyBriefing,
-  Department,
   NewsArticle,
   ScrapeJobStatus,
 } from './types/news';
@@ -37,7 +36,6 @@ export default function App() {
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [todayKst, setTodayKst] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedDepartment, setSelectedDepartment] = useState<Department | '전체'>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [scheduler, setScheduler] = useState<ScrapeJobStatus>(DEFAULT_SCHEDULER);
   const [activeArticle, setActiveArticle] = useState<NewsArticle | null>(null);
@@ -137,7 +135,6 @@ export default function App() {
 
   const handleSelectDate = (date: string) => {
     setSelectedDate(date);
-    setSelectedDepartment('전체');
     fetchBriefing(date);
   };
 
@@ -177,28 +174,28 @@ export default function App() {
 
   const filteredArticles = useMemo(() => {
     const list = briefing?.articles ?? [];
+    if (!searchQuery.trim()) return list;
+    const rawQ = searchQuery.trim().toLowerCase();
+    const tagQ = rawQ.replace(/^#+/, '');
     return list.filter((article) => {
-      const deptMatch =
-        selectedDepartment === '전체' ||
-        article.departments.includes(selectedDepartment);
-      if (!deptMatch) return false;
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.trim().toLowerCase();
       return (
-        article.title.toLowerCase().includes(q) ||
-        article.summary.toLowerCase().includes(q) ||
-        article.sourceName.toLowerCase().includes(q) ||
-        article.criteriaCategory.toLowerCase().includes(q)
+        article.title.toLowerCase().includes(rawQ) ||
+        article.summary.toLowerCase().includes(rawQ) ||
+        article.sourceName.toLowerCase().includes(rawQ) ||
+        article.criteriaCategory.toLowerCase().includes(rawQ) ||
+        article.keywords.some(
+          (kw) => kw.toLowerCase().includes(tagQ) || `#${kw.toLowerCase()}`.includes(rawQ)
+        )
       );
     });
-  }, [briefing, selectedDepartment, searchQuery]);
+  }, [briefing, searchQuery]);
 
   const activeIndex = activeArticle
     ? filteredArticles.findIndex((a) => a.id === activeArticle.id)
     : -1;
 
   return (
-    <div id="top" className="min-h-screen flex flex-col bg-[#F8FAFC] dark:bg-[#0B111A] text-slate-900 dark:text-slate-100">
+    <div id="top" className="min-h-screen flex flex-col bg-[#F4EFE6] dark:bg-[#0B0B0D] text-[#0B0B0D] dark:text-[#F4EFE6]">
       <TopBar
         isScraping={scheduler.isRunning}
         onTriggerScrape={handleTriggerScrape}
@@ -209,8 +206,6 @@ export default function App() {
         selectedDate={selectedDate}
         availableDates={availableDates}
         onSelectDate={handleSelectDate}
-        selectedDepartment={selectedDepartment}
-        onSelectDepartment={setSelectedDepartment}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         theme={theme}
@@ -225,14 +220,14 @@ export default function App() {
         {/* Main Daily News Board */}
         <section id="briefing-feed" className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">
+            <h2 className="text-base font-bold text-[#0B0B0D] dark:text-[#F4EFE6]">
               {selectedDate ? `${selectedDate} 핵심 브리핑` : '오늘의 핵심 브리핑'}{' '}
-              <span className="font-mono tabular-nums text-sm font-medium text-slate-500 dark:text-slate-400">
+              <span className="font-mono tabular-nums text-sm font-medium text-[#1F1F23]/60 dark:text-[#F4EFE6]/60">
                 ({filteredArticles.length}건)
               </span>
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              썸네일, 제목 또는 요약문을 클릭하면 기사 전문과 원문 링크가 열립니다.
+            <p className="text-xs text-[#1F1F23]/60 dark:text-[#F4EFE6]/60">
+              제목 또는 요약문을 클릭하면 기사 전문과 정확한 원문 링크가 열립니다.
             </p>
           </div>
 
@@ -241,20 +236,17 @@ export default function App() {
               {[1, 2, 3].map((n) => (
                 <div
                   key={n}
-                  className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-5 animate-pulse"
+                  className="rounded-xl border border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-white dark:bg-[#1F1F23] px-6 py-5 animate-pulse space-y-3"
                 >
-                  <div className="aspect-[4/3] rounded-lg bg-slate-200 dark:bg-slate-800" />
-                  <div className="space-y-3 py-1">
-                    <div className="h-3.5 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
-                    <div className="h-6 w-4/5 rounded bg-slate-200 dark:bg-slate-800" />
-                    <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                    <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
-                  </div>
+                  <div className="h-3.5 w-1/3 rounded bg-[#1F1F23]/10 dark:bg-[#F4EFE6]/10" />
+                  <div className="h-6 w-4/5 rounded bg-[#1F1F23]/10 dark:bg-[#F4EFE6]/10" />
+                  <div className="h-4 w-full rounded bg-[#1F1F23]/10 dark:bg-[#F4EFE6]/10" />
+                  <div className="h-4 w-5/6 rounded bg-[#1F1F23]/10 dark:bg-[#F4EFE6]/10" />
                 </div>
               ))}
             </div>
           ) : loadError ? (
-            <div className="rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 p-6 flex items-center justify-between gap-4">
+            <div className="rounded-xl border border-red-300 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 p-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 text-sm text-red-800 dark:text-red-200">
                 <AlertCircle className="h-5 w-5 shrink-0" />
                 <span>{loadError}</span>
@@ -268,26 +260,27 @@ export default function App() {
               </button>
             </div>
           ) : filteredArticles.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-10 text-center space-y-3">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                선택하신 조건({selectedDepartment} · 검색어)에 해당하는 브리핑 기사가 없습니다.
+            <div className="rounded-xl border border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-white dark:bg-[#1F1F23] p-10 text-center space-y-3">
+              <p className="text-sm font-medium text-[#1F1F23] dark:text-[#F4EFE6]">
+                {searchQuery.trim()
+                  ? `'${searchQuery}' 검색어에 해당하는 브리핑 기사가 없습니다.`
+                  : '해당 날짜의 브리핑 기사가 없습니다.'}
               </p>
               <div className="flex items-center justify-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedDepartment('전체');
-                    setSearchQuery('');
-                  }}
-                  className="rounded-lg border border-slate-200 dark:border-slate-700 px-4 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-                >
-                  필터 초기화
-                </button>
+                {searchQuery.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="rounded-lg border border-[#1F1F23]/15 dark:border-[#F4EFE6]/15 px-4 py-2 text-xs font-medium text-[#0B0B0D] dark:text-[#F4EFE6] hover:bg-[#F4EFE6] dark:hover:bg-[#0B0B0D] cursor-pointer"
+                  >
+                    검색 초기화
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleTriggerScrape}
                   disabled={scheduler.isRunning}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0369A1] px-4 py-2 text-xs font-semibold text-white hover:bg-[#075985] cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#FF6A00] px-4 py-2 text-xs font-bold text-[#0B0B0D] hover:bg-[#FFB000] cursor-pointer"
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
                   <span>지금 뉴스 스크랩 실행</span>
@@ -320,9 +313,9 @@ export default function App() {
         <PipelineTransparencyPanel briefing={briefing} />
       </main>
 
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">
-        <div className="mx-auto max-w-[1280px] px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <span>YNCC ChemBrief · 여천NCC 실무자를 위한 석유화학 산업 뉴스 인텔리전스</span>
+      <footer className="border-t border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-[#FAF7F2] dark:bg-[#1F1F23]/65">
+        <div className="mx-auto max-w-[1280px] px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-[#1F1F23]/65 dark:text-[#F4EFE6]/60">
+          <span>YNCC ChemBrief · 여천NCC 실무자를 위한 석유화학산업 뉴스 브리핑</span>
           <span className="font-mono tabular-nums">
             정기 스크랩 기준: 매일 09:00 KST · 1일 3~7건 팩트체크 선별
           </span>

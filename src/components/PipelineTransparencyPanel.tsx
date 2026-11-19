@@ -47,33 +47,29 @@ const SELECTION_CRITERIA = [
 export function PipelineTransparencyPanel({
   briefing,
 }: PipelineTransparencyPanelProps) {
-  // Collapsed by default per user preference
   const [isExpanded, setIsExpanded] = useState(false);
   const dedupeLog = briefing?.pipelineStats.deduplicationLog ?? [];
 
   return (
-    <section
-      id="pipeline-criteria"
-      className="pt-4"
-    >
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A] overflow-hidden">
+    <section id="pipeline-criteria" className="pt-4">
+      <div className="rounded-xl border border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-white dark:bg-[#1F1F23] overflow-hidden">
         <button
           type="button"
           onClick={() => setIsExpanded((prev) => !prev)}
           aria-expanded={isExpanded}
-          className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left hover:bg-slate-50/80 dark:hover:bg-slate-900/50 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0284C7]"
+          className="flex w-full items-center justify-between gap-4 px-6 py-4 text-left hover:bg-[#FAF7F2] dark:hover:bg-[#0B0B0D]/40 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6A00]"
         >
           <div className="space-y-1 min-w-0">
-            <h2 className="text-base font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h2 className="text-base font-bold tracking-tight text-[#0B0B0D] dark:text-[#F4EFE6]">
               여천NCC 맞춤형 기사 선별 및 2단계 검증 알고리즘
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono tabular-nums truncate">
+            <p className="text-xs text-[#1F1F23]/65 dark:text-[#F4EFE6]/60 font-mono tabular-nums truncate">
               4대 선별 기준 · 본문 50%↑ 중복 제거 {dedupeLog.length}그룹 · 팩트체크 통과{' '}
               {briefing?.pipelineStats.factCheckPassed ?? 0}건
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 shrink-0 whitespace-nowrap">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#C84D00] dark:text-[#FFB000] shrink-0 whitespace-nowrap">
             <span>{isExpanded ? '접기' : '상세 보기'}</span>
             <ChevronDown
               className={`h-4 w-4 transition-transform duration-200 ${
@@ -93,8 +89,8 @@ export function PipelineTransparencyPanel({
               transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
               className="overflow-hidden"
             >
-              <div className="border-t border-slate-200 dark:border-slate-800 p-6 space-y-6">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+              <div className="border-t border-[#1F1F23]/10 dark:border-[#F4EFE6]/10 p-6 space-y-6">
+                <p className="text-sm text-[#1F1F23]/75 dark:text-[#F4EFE6]/70">
                   매일 오전 09:00 KST(또는 수동 스크랩 실행 시) 아래 4대 기준과 중복 제거·팩트체크 검증을 통과한 하루 3~7건의 핵심 기사만 게시됩니다.
                 </p>
 
@@ -103,15 +99,15 @@ export function PipelineTransparencyPanel({
                   {SELECTION_CRITERIA.map((item) => (
                     <div
                       key={item.index}
-                      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 p-4 space-y-2"
+                      className="rounded-xl border border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-[#FAF7F2] dark:bg-[#0B0B0D]/60 p-4 space-y-2"
                     >
-                      <div className="font-mono tabular-nums text-xs font-semibold text-[#0369A1] dark:text-sky-400">
+                      <div className="font-mono tabular-nums text-xs font-bold text-[#C84D00] dark:text-[#FFB000]">
                         {item.index}
                       </div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      <h3 className="text-sm font-bold text-[#0B0B0D] dark:text-[#F4EFE6]">
                         {item.title}
                       </h3>
-                      <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      <p className="text-xs leading-relaxed text-[#1F1F23]/75 dark:text-[#F4EFE6]/70">
                         {item.desc}
                       </p>
                     </div>
@@ -121,20 +117,20 @@ export function PipelineTransparencyPanel({
                 {/* Step 1 & Step 2 Verification Audit */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Step 1: Content Deduplication */}
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 p-5 space-y-4">
+                  <div className="rounded-xl border border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-[#FAF7F2] dark:bg-[#0B0B0D]/60 p-5 space-y-4">
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
-                        <GitMerge className="h-4 w-4 text-[#0369A1] dark:text-sky-400" aria-hidden="true" />
+                      <div className="flex items-center gap-2 text-sm font-bold text-[#0B0B0D] dark:text-[#F4EFE6]">
+                        <GitMerge className="h-4 w-4 text-[#C84D00] dark:text-[#FFB000]" aria-hidden="true" />
                         <span>Step 1. 본문 유사도(50%↑) 기반 중복 제거 로그</span>
                       </div>
-                      <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                      <span className="text-xs font-mono tabular-nums text-[#1F1F23]/60 dark:text-[#F4EFE6]/60">
                         {dedupeLog.length}개 병합 그룹
                       </span>
                     </div>
 
-                    <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                    <p className="text-xs leading-relaxed text-[#1F1F23]/75 dark:text-[#F4EFE6]/70">
                       제목이 달라도 본문 핵심 내용이 50% 이상 겹치는 기사를 단일 그룹으로 묶어{' '}
-                      <strong className="font-semibold text-slate-800 dark:text-slate-200">
+                      <strong className="font-semibold text-[#0B0B0D] dark:text-[#F4EFE6]">
                         최다 조회수 기사 1건(조회수 미확인 시 최신 게시 기사)
                       </strong>
                       만 채택합니다.
@@ -145,22 +141,22 @@ export function PipelineTransparencyPanel({
                         {dedupeLog.map((cluster, i) => (
                           <div
                             key={i}
-                            className="rounded-lg border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-[#0F172A] p-3.5 space-y-1.5 text-xs"
+                            className="rounded-lg border border-[#1F1F23]/10 dark:border-[#F4EFE6]/10 bg-white dark:bg-[#1F1F23] p-3.5 space-y-1.5 text-xs"
                           >
-                            <div className="flex items-center justify-between gap-2 font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                            <div className="flex items-center justify-between gap-2 font-mono tabular-nums text-[#1F1F23]/60 dark:text-[#F4EFE6]/60">
                               <span>채택: {cluster.keptSource}</span>
                               <span>
                                 유사도 {cluster.similarityOverlapPercent}% · {cluster.mergedCount}건 제외
                               </span>
                             </div>
-                            <div className="font-semibold text-slate-800 dark:text-slate-200">
+                            <div className="font-semibold text-[#0B0B0D] dark:text-[#F4EFE6]">
                               {cluster.keptTitle}
                             </div>
-                            <div className="text-slate-500 dark:text-slate-400">
+                            <div className="text-[#1F1F23]/70 dark:text-[#F4EFE6]/65">
                               선별 기준: {cluster.ruleReason}
                             </div>
                             {cluster.mergedTitles.length > 0 && (
-                              <div className="text-slate-400 dark:text-slate-500 truncate">
+                              <div className="text-[#1F1F23]/50 dark:text-[#F4EFE6]/45 truncate">
                                 제외된 유사 기사: {cluster.mergedTitles.join(' / ')}
                               </div>
                             )}
@@ -168,24 +164,24 @@ export function PipelineTransparencyPanel({
                         ))}
                       </div>
                     ) : (
-                      <div className="text-xs text-slate-500 dark:text-slate-400 py-2">
+                      <div className="text-xs text-[#1F1F23]/60 dark:text-[#F4EFE6]/60 py-2">
                         선택된 날짜의 브리핑에는 50% 이상 중복으로 병합된 기사 그룹이 없습니다.
                       </div>
                     )}
                   </div>
 
                   {/* Step 2: Fact-Checking & Media Coverage */}
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 p-5 space-y-5">
+                  <div className="rounded-xl border border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-[#FAF7F2] dark:bg-[#0B0B0D]/60 p-5 space-y-5">
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                      <div className="flex items-center gap-2 text-sm font-bold text-[#0B0B0D] dark:text-[#F4EFE6]">
                         <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                         <span>Step 2. Google Search 교차 검증 팩트체크</span>
                       </div>
-                      <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+                      <p className="text-xs leading-relaxed text-[#1F1F23]/75 dark:text-[#F4EFE6]/70">
                         선별된 기사의 핵심 수치(나프타·에틸렌 가격, 스프레드, 증설 규모, 기업명, 규제 내용)를 Google Search Tool을 통해 복수 출처와 교차 검증한 뒤 통과 기사만 업로드합니다.
                       </p>
                       {briefing && (
-                        <div className="flex items-center gap-3 pt-1 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-300">
+                        <div className="flex items-center gap-3 pt-1 text-xs font-mono tabular-nums text-[#1F1F23]/75 dark:text-[#F4EFE6]/75">
                           <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-400 font-semibold">
                             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
                             검증 통과 {briefing.pipelineStats.factCheckPassed}건
@@ -196,12 +192,12 @@ export function PipelineTransparencyPanel({
                       )}
                     </div>
 
-                    <div className="pt-4 border-t border-slate-200/70 dark:border-slate-800 space-y-2">
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        <Newspaper className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                    <div className="pt-4 border-t border-[#1F1F23]/10 dark:border-[#F4EFE6]/10 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-[#0B0B0D] dark:text-[#F4EFE6]">
+                        <Newspaper className="h-3.5 w-3.5 text-[#C84D00] dark:text-[#FFB000]" aria-hidden="true" />
                         <span>주요 모니터링 대상 공신력 매체</span>
                       </div>
-                      <div className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                      <div className="text-xs leading-relaxed text-[#1F1F23]/65 dark:text-[#F4EFE6]/60">
                         {TARGET_OUTLETS.join(' · ')}
                       </div>
                     </div>

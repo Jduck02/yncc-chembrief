@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import type { DailyBriefing, NewsArticle } from '../src/types/news.ts';
+import { normalizeArticleKeywords } from './keywords.ts';
 import { createSeedBriefings, SEED_SCHEMA_VERSION } from './seedData.ts';
 import { getKstDateString } from './time.ts';
 
@@ -18,6 +19,21 @@ function writeStore(data: StoreData): void {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+function hydrateBriefingKeywords(briefing: DailyBriefing): DailyBriefing {
+  return {
+    ...briefing,
+    articles: briefing.articles.map((article) => ({
+      ...article,
+      keywords: normalizeArticleKeywords(
+        article.keywords,
+        article.title,
+        article.criteriaCategory,
+        `${article.summary} ${article.fullText}`
+      ),
+    })),
+  };
 }
 
 function ensureStoreFile(): StoreData {
@@ -49,12 +65,12 @@ function ensureStoreFile(): StoreData {
       return seeded;
     }
 
-    // Upgrade older curated_seed entries to the latest verified exact-article-URL seed schema
+    // Upgrade older curated_seed entries to the latest verified exact-article-URL & keyword schema
     if ((parsed.seedVersion ?? 1) < SEED_SCHEMA_VERSION) {
       const freshSeeds = createSeedBriefings();
-      const liveBriefings = parsed.briefings.filter(
-        (b) => b.triggerType !== 'curated_seed'
-      );
+      const liveBriefings = parsed.briefings
+        .filter((b) => b.triggerType !== 'curated_seed')
+        .map(hydrateBriefingKeywords);
       const liveDates = new Set(liveBriefings.map((b) => b.date));
       const merged = [
         ...liveBriefings,
@@ -70,7 +86,10 @@ function ensureStoreFile(): StoreData {
       return upgraded;
     }
 
-    return parsed;
+    return {
+      ...parsed,
+      briefings: parsed.briefings.map(hydrateBriefingKeywords),
+    };
   } catch {
     const fallback: StoreData = {
       seedVersion: SEED_SCHEMA_VERSION,
