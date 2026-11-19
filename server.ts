@@ -2,7 +2,6 @@ import 'dotenv/config';
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import { dailyScheduler } from './server/scheduler.ts';
 import {
   getArticleById,
@@ -79,6 +78,7 @@ async function startServer() {
 
   // Frontend serving: Vite middleware in development, static dist/ in production
   if (!isProduction) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
