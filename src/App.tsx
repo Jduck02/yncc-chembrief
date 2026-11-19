@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { ArchiveSection } from './components/ArchiveSection';
 import { ArticleCard } from './components/ArticleCard';
 import { ArticleDetailModal } from './components/ArticleDetailModal';
 import { PipelineTransparencyPanel } from './components/PipelineTransparencyPanel';
@@ -34,6 +35,7 @@ export default function App() {
 
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [todayKst, setTodayKst] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedDepartment, setSelectedDepartment] = useState<Department | '전체'>('전체');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -64,6 +66,7 @@ export default function App() {
       const data = (await res.json()) as BriefingsResponse;
       setBriefing(data.briefing);
       setAvailableDates(data.availableDates);
+      setTodayKst(data.todayKst);
       setSelectedDate(data.briefing?.date || data.todayKst);
       setScheduler(data.scheduler);
     } catch (err) {
@@ -305,11 +308,16 @@ export default function App() {
           )}
         </section>
 
-        <PipelineTransparencyPanel
-          briefing={briefing}
+        {/* Hierarchical Year > Month > Date Archive */}
+        <ArchiveSection
           availableDates={availableDates}
+          selectedDate={selectedDate}
+          todayKst={todayKst}
           onSelectDate={handleSelectDate}
         />
+
+        {/* Collapsed at very bottom: Selection Criteria & 2-Step Verification Algorithm */}
+        <PipelineTransparencyPanel briefing={briefing} />
       </main>
 
       <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0F172A]">

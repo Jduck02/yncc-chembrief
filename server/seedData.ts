@@ -1,7 +1,7 @@
 import type { DailyBriefing, FallbackImageKey } from '../src/types/news.ts';
 import { getKstDateString, getOffsetKstDateString } from './time.ts';
 
-export const SEED_SCHEMA_VERSION = 2;
+export const SEED_SCHEMA_VERSION = 3;
 
 export const FALLBACK_IMAGE_MAP: Record<FallbackImageKey, string> = {
   ncc_plant_night: '/src/assets/images/ncc_plant_night_1795047558031.jpg',
@@ -14,6 +14,11 @@ export const FALLBACK_IMAGE_MAP: Record<FallbackImageKey, string> = {
 export function createSeedBriefings(): DailyBriefing[] {
   const todayKst = getKstDateString();
   const yesterdayKst = getOffsetKstDateString(-1);
+  const [yNum, mNum] = todayKst.split('-').map(Number);
+  const prevMonthDateObj = new Date(Date.UTC(yNum, mNum - 2, 24));
+  const prevMonthDate = prevMonthDateObj.toISOString().slice(0, 10);
+  const prevMonthEarlierObj = new Date(Date.UTC(yNum, mNum - 2, 14));
+  const prevMonthEarlierDate = prevMonthEarlierObj.toISOString().slice(0, 10);
 
   const todayBriefing: DailyBriefing = {
     date: todayKst,
@@ -359,5 +364,227 @@ export function createSeedBriefings(): DailyBriefing[] {
     ],
   };
 
-  return [todayBriefing, yesterdayBriefing];
+  const prevMonthBriefing1: DailyBriefing = {
+    date: prevMonthDate,
+    generatedAt: `${prevMonthDate} 09:00:00 KST`,
+    triggerType: 'curated_seed',
+    pipelineStats: {
+      rawCollected: 8,
+      duplicateClustersMerged: 1,
+      deduplicatedCount: 6,
+      factCheckPassed: 3,
+      factCheckRejected: 0,
+      finalPublished: 3,
+      deduplicationLog: [
+        {
+          keptId: `seed-${prevMonthDate}-1`,
+          keptTitle: '글로벌 APIC 2026 석유화학 전망: 아시아 공급과잉 속 구조조정 가속',
+          keptSource: 'S&P Global',
+          mergedCount: 1,
+          mergedTitles: ['아시아 석유화학 업계 마진 압박 및 설비 통폐합 전망'],
+          similarityOverlapPercent: 66,
+          selectionRule: 'latest_timestamp',
+          ruleReason: '조회수 미제공 외신 그룹 내 최신 보도 시각 기준 기사 선별',
+        },
+      ],
+    },
+    articles: [
+      {
+        id: `seed-${prevMonthDate}-1`,
+        briefingDate: prevMonthDate,
+        title: '글로벌 APIC 2026 석유화학 전망: 아시아 공급과잉 속 구조조정 가속',
+        summary:
+          'S&P Global이 발표한 APIC 2026 특별 보고서에 따르면 아시아 석유화학 시장은 중국의 대규모 설비 증설 여파로 구조적 공급 과잉이 이어지는 가운데 한국·일본을 중심으로 노후 크래커 통폐합이 본격화되고 있습니다. 단기적인 범용 마진 반등보다 에너지 효율화 및 고부가 유도체 중심의 포트폴리오 재편이 생존의 핵심 변수로 꼽힙니다. 여천NCC는 글로벌 시장 재편 흐름에 맞춰 설비 가동 탄력성과 고부가 유분 수익성 제고에 역량을 집중해야 합니다.',
+        fullText: `S&P Global Energy가 공개한 아시아석유화학산업회의(APIC 2026) 특별 리포트는 글로벌 석유화학 산업이 공급 과잉과 에너지 전환이라는 이중 전환점에 직면해 있음을 짚었다.\n\n특히 동북아 나프타 크래커들은 중동·북미산 저가 에탄 기반 제품과의 원가 격차를 줄이기 위해 설비 합리화, 유틸리티 공동 최적화, 고부가 스페셜티 전환 투자를 병행하고 있다.`,
+        sourceName: 'S&P Global',
+        sourceUrl:
+          'https://www.spglobal.com/energy/en/news-research/special-reports/chemicals/emerging-stronger-apic-2026',
+        thumbnailUrl: FALLBACK_IMAGE_MAP.global_energy_port,
+        fallbackImageKey: 'global_energy_port',
+        publishedAt: `${prevMonthDate} 08:10 KST`,
+        viewCount: null,
+        departments: ['영업', '생산'],
+        criteriaCategory: '글로벌 수급·원료',
+        relevanceScore: 91,
+        ynccImplication:
+          '글로벌 공급 과잉 장기화 전제하에 범용 설비 가동 최적화 및 고부가 유도체 연계 전략 유지 필요.',
+        factCheckStatus: 'verified',
+        factCheckSummary:
+          '교차 검증 완료: S&P Global APIC 2026 보고서 및 ICIS 아시아 시황 분석과 일치.',
+        verifiedSources: [
+          {
+            title: 'S&P Global APIC 2026 원문',
+            uri: 'https://www.spglobal.com/energy/en/news-research/special-reports/chemicals/emerging-stronger-apic-2026',
+          },
+        ],
+        isSample: true,
+      },
+      {
+        id: `seed-${prevMonthDate}-2`,
+        briefingDate: prevMonthDate,
+        title: '여수산단 정기보수(TA) 시즌 환경·안전 관리 및 주민 사전예고제 운영',
+        summary:
+          '여수시와 여수국가산단 입주 기업들은 정기보수 기간 플레어스택 가동에 따른 화염·매연·소음을 줄이기 위해 가성소다 세정 및 스팀 조절 등 저감 조치를 강화하고 있습니다. 매월 정비 일정 사전예고제를 통해 지역 사회와 투명하게 소통하며 안전·환경 리스크를 관리하는 체계가 운영 중입니다. 여천NCC 안전·환경·생산팀은 대정비 및 부분 정비 착수 전 유해가스 퍼지 절차와 주민 안내 프로세스를 철저히 준수해야 합니다.',
+        fullText: `여수시청 산단 정비계획 공고에 따르면 여수국가산업단지 내 주요 석유화학 사업장들은 정기보수 기간 발생할 수 있는 일시적 환경 영향을 최소화하기 위해 배관 세정 및 플레어스택 운전 최적화 조치를 시행하고 있다.\n\n여천NCC는 공정안전관리(PSM)와 비산배출 저감 기준에 부합하는 정비 안전 매뉴얼을 상시 가동하고 있다.`,
+        sourceName: '여수시청',
+        sourceUrl:
+          'https://www.yeosu.go.kr/www/sphere/environ/sandan_maintain?idx=581649&mode=view',
+        thumbnailUrl: FALLBACK_IMAGE_MAP.plant_control_safety,
+        fallbackImageKey: 'plant_control_safety',
+        publishedAt: `${prevMonthDate} 07:30 KST`,
+        viewCount: 5120,
+        departments: ['안전', '환경', '생산'],
+        criteriaCategory: '실무·리스크 관리',
+        relevanceScore: 86,
+        ynccImplication:
+          '정기보수 시 플레어 저감 절차(NaOH 세정·스팀 제어) 및 사전예고제 준수 철저.',
+        factCheckStatus: 'verified',
+        factCheckSummary:
+          '교차 검증 완료: 여수시청 산단 정비계획 공식 게시 내용 확인.',
+        verifiedSources: [
+          {
+            title: '여수시청 산단 정비계획 원문',
+            uri: 'https://www.yeosu.go.kr/www/sphere/environ/sandan_maintain?idx=581649&mode=view',
+          },
+        ],
+        isSample: true,
+      },
+      {
+        id: `seed-${prevMonthDate}-3`,
+        briefingDate: prevMonthDate,
+        title: '석유화학 사업재편 지원 패키지 가동…수입 나프타 무관세 연장 검토',
+        summary:
+          '정부가 여수·대산 석유화학단지의 자발적 사업재편을 뒷받침하기 위해 수입 나프타 무관세 적용 연장 및 금융·세제 지원 방안을 추진하고 있습니다. 원재료 나프타 관세 부담 완화는 순수 NCC 기반 기업인 여천NCC의 원가 방어에 직접적인 도움이 됩니다. 구매·재무 부서는 무관세 적용 기한 및 세부 요건을 면밀히 확인해 원료 도입 스케줄에 반영해야 합니다.',
+        fullText: `이데일리 및 산업부 발표에 따르면 석유화학 경쟁력 제고 정책의 일환으로 수입 나프타 무관세 적용 연장과 공용 파이프랙 임대료 인하, 세제 감면 패키지가 추진되고 있다.\n\n여천NCC 구매·원료팀은 정책 적용 일정에 맞춰 장기·스팟 나프타 통관 계획을 최적화해야 한다.`,
+        sourceName: '이데일리',
+        sourceUrl: 'https://marketin.edaily.co.kr/News/ReadE?newsId=02824086645517472',
+        thumbnailUrl: FALLBACK_IMAGE_MAP.crude_naphtha_terminal,
+        fallbackImageKey: 'crude_naphtha_terminal',
+        publishedAt: `${prevMonthDate} 06:55 KST`,
+        viewCount: 8420,
+        departments: ['구매', '영업'],
+        criteriaCategory: '국내 정책·단지',
+        relevanceScore: 89,
+        ynccImplication:
+          '수입 나프타 무관세 적용 연장 혜택에 맞춘 원료 통관·재고 계획 최적화 필요.',
+        factCheckStatus: 'verified',
+        factCheckSummary:
+          '교차 검증 완료: 이데일리 및 산업부 석유화학 경쟁력 지원 대책 보도 확인.',
+        verifiedSources: [
+          {
+            title: '이데일리 원문 기사',
+            uri: 'https://marketin.edaily.co.kr/News/ReadE?newsId=02824086645517472',
+          },
+        ],
+        isSample: true,
+      },
+    ],
+  };
+
+  const prevMonthBriefing2: DailyBriefing = {
+    date: prevMonthEarlierDate,
+    generatedAt: `${prevMonthEarlierDate} 09:00:00 KST`,
+    triggerType: 'curated_seed',
+    pipelineStats: {
+      rawCollected: 7,
+      duplicateClustersMerged: 1,
+      deduplicatedCount: 5,
+      factCheckPassed: 3,
+      factCheckRejected: 0,
+      finalPublished: 3,
+      deduplicationLog: [],
+    },
+    articles: [
+      {
+        id: `seed-${prevMonthEarlierDate}-1`,
+        briefingDate: prevMonthEarlierDate,
+        title: '국내 NCC 업계, 구조조정 골든타임 속 설비 효율화 해법 모색',
+        summary:
+          '한국경제는 국내 석유화학 업계가 장기 불황을 극복하기 위해 설비 감축과 고부가 스페셜티 전환이라는 구조조정의 골든타임을 맞고 있다고 보도했습니다. 여천NCC는 여수산단 내 유틸리티 통합 및 설비 효율화 과제를 속도감 있게 점검해 원가 경쟁력을 확보해야 합니다.',
+        fullText: `한국경제 분석 보도에 따르면 국내 주요 석유화학 기업들은 중국발 공급 과잉에 대응해 범용 NCC 설비 비중을 합리화하고 고부가 제품 중심의 수익 구조로 전환하기 위한 재편 작업을 추진 중이다.`,
+        sourceName: '한국경제',
+        sourceUrl: 'https://www.hankyung.com/article/2026111683841',
+        thumbnailUrl: FALLBACK_IMAGE_MAP.ncc_plant_night,
+        fallbackImageKey: 'ncc_plant_night',
+        publishedAt: `${prevMonthEarlierDate} 08:05 KST`,
+        viewCount: 9310,
+        departments: ['생산', '영업'],
+        criteriaCategory: '국내 정책·단지',
+        relevanceScore: 88,
+        ynccImplication:
+          '산단 내 설비 효율화 및 고부가 유도체 연계 프로젝트 우선순위 재점검 권고.',
+        factCheckStatus: 'verified',
+        factCheckSummary:
+          '교차 검증 완료: 한국경제 원문 기사 내용 확인.',
+        verifiedSources: [
+          {
+            title: '한국경제 원문 기사',
+            uri: 'https://www.hankyung.com/article/2026111683841',
+          },
+        ],
+        isSample: true,
+      },
+      {
+        id: `seed-${prevMonthEarlierDate}-2`,
+        briefingDate: prevMonthEarlierDate,
+        title: 'Asia petrochemical markets grapple with weak downstream margins',
+        summary:
+          'ICIS는 아시아 역내 석유화학 시장이 원료비 부담과 다운스트림 수요 약세로 인해 크래커 마진 압박을 겪고 있다고 전했습니다. 여천NCC 영업·구매 부서는 스팟 시장 변동성에 대비한 계약 물량 안정화에 집중해야 합니다.',
+        fullText: `ICIS 아시아 시장 동향 분석에 따르면 패키징·자동차 등 주요 전방 산업의 회복 지연으로 에틸렌·프로필렌 유도품 마진이 약세를 보이고 있으며 역내 크래커들의 탄력 가동이 지속되고 있다.`,
+        sourceName: 'ICIS',
+        sourceUrl:
+          'https://www.icis.com/explore/resources/news/2026/08/13/11228813/asia-petrochemical-markets-grapple-with-supply-strain-weak-demand/',
+        thumbnailUrl: FALLBACK_IMAGE_MAP.refinery_piping_detail,
+        fallbackImageKey: 'refinery_piping_detail',
+        publishedAt: `${prevMonthEarlierDate} 07:20 KST`,
+        viewCount: null,
+        departments: ['영업', '구매'],
+        criteriaCategory: 'NCC 마진·가동률',
+        relevanceScore: 85,
+        ynccImplication:
+          '다운스트림 수요 둔화 구간에서 고정 거래처 물량 유지 및 원료 스팟 조달 비중 조절 필요.',
+        factCheckStatus: 'verified',
+        factCheckSummary:
+          '교차 검증 완료: ICIS 아시아 석유화학 시황 원문 확인.',
+        verifiedSources: [
+          {
+            title: 'ICIS 원문 기사',
+            uri: 'https://www.icis.com/explore/resources/news/2026/08/13/11228813/asia-petrochemical-markets-grapple-with-supply-strain-weak-demand/',
+          },
+        ],
+        isSample: true,
+      },
+      {
+        id: `seed-${prevMonthEarlierDate}-3`,
+        briefingDate: prevMonthEarlierDate,
+        title: '여수산단 통합 안전망 및 친환경 공정 전환 협의체 가동',
+        summary:
+          '남도투데이는 여수국가산단 노후 배관 안전성 강화와 친환경·저탄소 공정 전환을 위한 산단 협의체 가동 소식을 전했습니다. 여천NCC 안전·환경 부서는 파이프랙 점검 및 온실가스 저감 과제를 지속 이행해야 합니다.',
+        fullText: `남도투데이 보도에 따르면 여수산단 내 공용 파이프랙과 유틸리티 설비의 안전성을 높이고 글로벌 탄소 규제에 대응하기 위한 정부·지자체·기업 간 협력이 강화되고 있다.`,
+        sourceName: '남도투데이',
+        sourceUrl: 'https://www.namdotoday.kr/news/articleView.html?idxno=30148',
+        thumbnailUrl: FALLBACK_IMAGE_MAP.plant_control_safety,
+        fallbackImageKey: 'plant_control_safety',
+        publishedAt: `${prevMonthEarlierDate} 06:40 KST`,
+        viewCount: 4870,
+        departments: ['안전', '환경'],
+        criteriaCategory: '실무·리스크 관리',
+        relevanceScore: 84,
+        ynccImplication:
+          '공용 파이프랙 안전성 점검 및 저탄소 공정 전환 지원 과제 연계 검토.',
+        factCheckStatus: 'verified',
+        factCheckSummary:
+          '교차 검증 완료: 남도투데이 여수산단 보도 확인.',
+        verifiedSources: [
+          {
+            title: '남도투데이 원문 기사',
+            uri: 'https://www.namdotoday.kr/news/articleView.html?idxno=30148',
+          },
+        ],
+        isSample: true,
+      },
+    ],
+  };
+
+  return [todayBriefing, yesterdayBriefing, prevMonthBriefing1, prevMonthBriefing2];
 }

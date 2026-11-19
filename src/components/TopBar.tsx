@@ -26,7 +26,7 @@ export function TopBar({
           YNCC ChemBrief
         </a>
 
-        {/* Zone 2: 4 concise single-line text nav links */}
+        {/* Zone 2: 3 concise single-line text nav links */}
         <nav
           aria-label="주 메뉴"
           className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600 dark:text-slate-400"
@@ -50,16 +50,6 @@ export function TopBar({
             className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0"
           >
             부서별 필터
-          </a>
-          <a
-            href="#pipeline-criteria"
-            onClick={(e) => {
-              e.preventDefault();
-              onNavigateSection('pipeline-criteria');
-            }}
-            className="hover:text-slate-900 dark:hover:text-slate-100 transition-colors whitespace-nowrap shrink-0"
-          >
-            선별·검증 기준
           </a>
           <a
             href="#archive-section"
