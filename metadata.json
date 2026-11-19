@@ -1,0 +1,6 @@
+{
+  "name": "YNCC ChemBrief",
+  "description": "여천NCC 및 나프타 분해설비(NCC) 기반 석유화학 실무자를 위한 AI 일일 산업 뉴스 스크랩·중복 제거·팩트체크 인텔리전스 게시판",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
