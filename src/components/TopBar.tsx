@@ -1,8 +1,12 @@
-import { RefreshCw } from 'lucide-react';
+import { BookmarkCheck, Check, Play, RefreshCw } from 'lucide-react';
+import type { DailyWorkflowState } from '../types/news';
 
 interface TopBarProps {
   isScraping: boolean;
+  isSaving: boolean;
+  workflow: DailyWorkflowState;
   onTriggerScrape: () => void;
+  onSaveBriefing: () => void;
   onNavigateSection: (sectionId: string) => void;
 }
 
@@ -66,12 +70,18 @@ function GpicLogoEmblem() {
 
 export function TopBar({
   isScraping,
+  isSaving,
+  workflow,
   onTriggerScrape,
+  onSaveBriefing,
   onNavigateSection,
 }: TopBarProps) {
+  const executeDisabled = isScraping || isSaving || !workflow.canExecuteScrape;
+  const saveDisabled = isScraping || isSaving || !workflow.canSaveDraft;
+
   return (
     <header className="sticky top-0 z-30 border-b border-[#1F1F23]/12 bg-[#F4EFE6]/95 backdrop-blur-sm dark:border-[#F4EFE6]/10 dark:bg-[#0B0B0D]/95">
-      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-8 px-6">
+      <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between gap-4 sm:gap-8 px-6">
         {/* Zone 1: GPIC Emblem Link + Brand Wordmark */}
         <div className="flex items-center gap-3.5 shrink-0">
           <a
@@ -97,7 +107,7 @@ export function TopBar({
           </a>
         </div>
 
-        {/* Zone 2: 3 concise single-line text nav links */}
+        {/* Zone 2: Concise single-line text nav links */}
         <nav
           aria-label="주 메뉴"
           className="hidden md:flex items-center gap-7 text-sm font-medium text-[#1F1F23]/75 dark:text-[#F4EFE6]/70"
@@ -124,19 +134,64 @@ export function TopBar({
           </a>
         </nav>
 
-        {/* Zone 3: 1 primary CTA */}
-        <div className="flex items-center shrink-0">
+        {/* Zone 3: Manual Execute & Daily Save Actions */}
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={onTriggerScrape}
-            disabled={isScraping}
-            className="inline-flex items-center gap-2 rounded-lg bg-[#FF6A00] px-4 py-2 text-xs font-bold text-[#0B0B0D] hover:bg-[#FFB000] disabled:opacity-60 disabled:cursor-not-allowed transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6A00]"
+            disabled={executeDisabled}
+            title={
+              workflow.isSavedToday
+                ? `오늘(${workflow.todayKst}) 저장 완료로 익일(00:00 KST)까지 비활성화됩니다.`
+                : '인터넷에서 최신 석유화학 기사를 수집·선별합니다.'
+            }
+            className="inline-flex items-center gap-2 rounded-lg bg-[#FF6A00] px-4 py-2 text-xs font-bold text-[#0B0B0D] hover:bg-[#FFB000] disabled:opacity-45 disabled:cursor-not-allowed transition-colors whitespace-nowrap shrink-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6A00]"
           >
-            <RefreshCw
-              className={`h-3.5 w-3.5 ${isScraping ? 'animate-spin' : ''}`}
-              aria-hidden="true"
-            />
-            <span>{isScraping ? '뉴스 스크랩 중...' : '지금 뉴스 스크랩 실행'}</span>
+            {isScraping ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Play className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
+            )}
+            <span>
+              {isScraping
+                ? '작업수행 중...'
+                : workflow.isSavedToday
+                  ? '작업수행 완료'
+                  : '작업수행'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onSaveBriefing}
+            disabled={saveDisabled}
+            title={
+              workflow.isSavedToday
+                ? `오늘(${workflow.todayKst}) 저장이 완료되었습니다.`
+                : workflow.canSaveDraft
+                  ? `현재 수집된 기사를 ${workflow.todayKst} 날짜로 저장하고 당일 확정합니다.`
+                  : '작업수행을 먼저 실행하면 저장할 수 있습니다.'
+            }
+            className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF6A00] ${
+              workflow.isSavedToday
+                ? 'border border-emerald-600/30 bg-emerald-600/10 text-emerald-800 dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300 opacity-75 cursor-not-allowed'
+                : workflow.canSaveDraft && !isScraping && !isSaving
+                  ? 'bg-[#0B0B0D] text-[#F4EFE6] hover:bg-[#1F1F23] dark:bg-[#FFB000] dark:text-[#0B0B0D] dark:hover:bg-[#FF6A00] cursor-pointer'
+                  : 'border border-[#1F1F23]/15 dark:border-[#F4EFE6]/15 bg-transparent text-[#1F1F23]/40 dark:text-[#F4EFE6]/35 cursor-not-allowed'
+            }`}
+          >
+            {workflow.isSavedToday ? (
+              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+            ) : (
+              <BookmarkCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            <span>
+              {isSaving
+                ? '저장 중...'
+                : workflow.isSavedToday
+                  ? '저장 완료'
+                  : '저장'}
+            </span>
           </button>
         </div>
       </div>

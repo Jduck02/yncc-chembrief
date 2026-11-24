@@ -4,9 +4,11 @@ import fs from 'fs';
 import path from 'path';
 import { dailyScheduler } from './server/scheduler.ts';
 import {
+  commitTodayDraft,
   getArticleById,
   getAvailableDates,
   getBriefingByDate,
+  getWorkflowState,
 } from './server/store.ts';
 import { getKstDateString } from './server/time.ts';
 
@@ -35,6 +37,7 @@ async function startServer() {
       availableDates,
       briefing,
       scheduler: dailyScheduler.getStatus(),
+      workflow: getWorkflowState(),
     });
   });
 
@@ -52,6 +55,7 @@ async function startServer() {
       scheduler: dailyScheduler.getStatus(),
       availableDates: getAvailableDates(),
       todayKst: getKstDateString(),
+      workflow: getWorkflowState(),
     });
   });
 
@@ -59,21 +63,62 @@ async function startServer() {
     const currentStatus = dailyScheduler.getStatus();
     if (currentStatus.isRunning) {
       res.status(409).json({
-        error: '뉴스 스크랩 파이프라인이 이미 실행 중입니다.',
+        error: '작업수행 파이프라인이 이미 실행 중입니다.',
         scheduler: currentStatus,
+        workflow: getWorkflowState(),
+      });
+      return;
+    }
+
+    const workflow = getWorkflowState();
+    if (workflow.isSavedToday) {
+      res.status(409).json({
+        error: `오늘(${workflow.todayKst}) 브리핑은 이미 저장되어 익일(00:00 KST)까지 작업수행을 실행할 수 없습니다.`,
+        scheduler: currentStatus,
+        workflow,
       });
       return;
     }
 
     // Run asynchronously so client polls /api/scrape/status smoothly
-    dailyScheduler.triggerScrape('manual').catch((err) => {
+    dailyScheduler.triggerManualScrape().catch((err) => {
       console.error('[Manual Scrape Error]', err);
     });
 
     res.status(202).json({
       started: true,
       scheduler: dailyScheduler.getStatus(),
+      workflow: getWorkflowState(),
     });
+  });
+
+  app.post('/api/briefings/save', (_req, res) => {
+    const currentStatus = dailyScheduler.getStatus();
+    if (currentStatus.isRunning) {
+      res.status(409).json({
+        error: '작업수행이 완료된 후 저장할 수 있습니다.',
+      });
+      return;
+    }
+
+    try {
+      const committed = commitTodayDraft();
+      res.json({
+        saved: true,
+        todayKst: getKstDateString(),
+        availableDates: getAvailableDates(),
+        briefing: committed,
+        scheduler: dailyScheduler.getStatus(),
+        workflow: getWorkflowState(),
+      });
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '당일 브리핑 저장에 실패했습니다.';
+      res.status(400).json({
+        error: message,
+        workflow: getWorkflowState(),
+      });
+    }
   });
 
   // Frontend serving: Vite middleware in development, static dist/ in production
@@ -95,9 +140,8 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    dailyScheduler.start();
     console.log(
-      `[YNCC ChemBrief] Server listening on http://0.0.0.0:${PORT} (KST Date: ${getKstDateString()})`
+      `[YNCC ChemBrief] Manual-mode server listening on http://0.0.0.0:${PORT} (KST Date: ${getKstDateString()})`
     );
   });
 }

@@ -65,7 +65,9 @@ export interface NewsArticle {
 export interface DailyBriefing {
   date: string;
   generatedAt: string;
-  triggerType: 'scheduled_09kst' | 'manual' | 'curated_seed';
+  savedAt?: string;
+  isSaved?: boolean;
+  triggerType: 'manual' | 'curated_seed' | 'scheduled_auto' | 'scheduled_09kst';
   pipelineStats: PipelineStats;
   articles: NewsArticle[];
 }
@@ -76,8 +78,16 @@ export interface ScrapeJobStatus {
   stageLabel: string;
   progressPercent: number;
   lastRunAt: string | null;
-  nextScheduledRunKst: string;
   error: string | null;
+}
+
+export interface DailyWorkflowState {
+  todayKst: string;
+  hasDraftToday: boolean;
+  isSavedToday: boolean;
+  savedAtToday: string | null;
+  canExecuteScrape: boolean;
+  canSaveDraft: boolean;
 }
 
 export interface BriefingsResponse {
@@ -85,4 +95,5 @@ export interface BriefingsResponse {
   availableDates: string[];
   briefing: DailyBriefing | null;
   scheduler: ScrapeJobStatus;
+  workflow: DailyWorkflowState;
 }

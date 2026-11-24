@@ -91,7 +91,7 @@ export function PipelineTransparencyPanel({
             >
               <div className="border-t border-[#1F1F23]/10 dark:border-[#F4EFE6]/10 p-6 space-y-6">
                 <p className="text-sm text-[#1F1F23]/75 dark:text-[#F4EFE6]/70">
-                  매일 오전 09:00 KST(또는 수동 스크랩 실행 시) 아래 4대 기준과 중복 제거·팩트체크 검증을 통과한 하루 3~7건의 핵심 기사만 게시됩니다.
+                  자동 수집 기능 없이 사용자가 직접 <strong className="font-semibold text-[#0B0B0D] dark:text-[#F4EFE6]">작업수행</strong> 버튼을 클릭할 때만 실행됩니다. 전일 18:00 이후 ~ 당일 자정 이전 및 당일 보도 기사 중 아래 4대 기준과 중복 제거·팩트체크 검증을 통과한 기사만 게시되며, <strong className="font-semibold text-[#0B0B0D] dark:text-[#F4EFE6]">저장</strong> 버튼을 누르기 전까지는 작업수행을 수차례 반복할 수 있습니다. 저장 확정 시 당일 자정(00:00 KST)까지 조회만 가능하며 익일부터 다시 작업수행 및 저장이 활성화됩니다.
                 </p>
 
                 {/* 4 Criteria Grid */}

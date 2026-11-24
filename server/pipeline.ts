@@ -10,8 +10,16 @@ import type {
 } from '../src/types/news.ts';
 import { GEMINI_MODEL, getGeminiClient } from './gemini.ts';
 import { normalizeArticleKeywords } from './keywords.ts';
-import { saveBriefing } from './store.ts';
-import { formatKstDateTime, getKstDateString } from './time.ts';
+import {
+  getAllSavedArticles,
+  getRecentLiveArticles,
+  saveTodayDraft,
+} from './store.ts';
+import {
+  formatKstDateTime,
+  getBriefingWindowBoundsKst,
+  isWithinBriefingWindow,
+} from './time.ts';
 
 interface CandidateArticle {
   tempId: string;
@@ -276,68 +284,58 @@ async function resolveGroundingChunks(
   });
 }
 
-async function findExactArticleUrlForCandidate(
-  title: string,
-  sourceName: string
-): Promise<string | null> {
-  try {
-    const ai = getGeminiClient();
-    const res = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: `다음 기사의 정확한 개별 기사 원문 페이지 URL(언론사 홈페이지가 아닌 기사 본문 URL)을 Google Search로 찾아주십시오.\n제목: ${title}\n언론사: ${sourceName}\n검색 결과에서 정확한 기사 링크를 찾은 뒤 JSON으로 반환하십시오: {"articleUrl": "https://..."}`,
-      config: {
-        tools: [{ googleSearch: {} }],
-      },
-    });
-
-    const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
-    const resolvedChunks = await resolveGroundingChunks(chunks);
-
-    // 1. Prefer resolved grounding chunk URL that is a specific article page
-    const specificChunk = resolvedChunks.find((c) => isSpecificArticleUrl(c.uri));
-    if (specificChunk) return specificChunk.uri;
-
-    // 2. Check JSON response
+async function callWithBackoff<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+  let attempt = 0;
+  while (true) {
     try {
-      const parsed = extractJsonBlock<{ articleUrl?: string }>(res.text);
-      if (parsed.articleUrl && isSpecificArticleUrl(parsed.articleUrl)) {
-        return parsed.articleUrl;
-      }
-    } catch {
-      // ignore
-    }
+      return await fn();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const isRateLimit =
+        msg.includes('429') ||
+        msg.includes('RESOURCE_EXHAUSTED') ||
+        msg.includes('503');
+      const isHardZeroQuota = /limit:\s*0\b/i.test(msg);
 
-    // 3. Fallback to first resolved non-vertexaisearch URL from chunks
-    const anyResolved = resolvedChunks.find(
-      (c) => !c.uri.includes('vertexaisearch.cloud.google.com')
-    );
-    return anyResolved?.uri ?? null;
-  } catch {
-    return null;
+      if (!isRateLimit || isHardZeroQuota || attempt >= maxRetries) {
+        throw err;
+      }
+
+      const delayMs = attempt === 0 ? 2500 : 6000;
+      attempt++;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 }
 
 
 export async function runNewsScrapePipeline(
-  triggerType: 'scheduled_09kst' | 'manual',
   onProgress?: ProgressCallback
 ): Promise<DailyBriefing> {
   const ai = getGeminiClient();
-  const todayKst = getKstDateString();
+  const bounds = getBriefingWindowBoundsKst();
+  const todayKst = bounds.todayKst;
+  const recentLiveArticles = getRecentLiveArticles(3);
+  const allSavedArticles = getAllSavedArticles();
 
   // STAGE 1: Google Search Grounding Discovery
   onProgress?.(
     'searching',
-    '1/3 · Google Search Grounding으로 국내외 석유화학·NCC 최신 기사 및 정확한 원문 URL 수집 중...',
+    `1/3 · Google Search Grounding으로 ${bounds.windowStartKstLabel} 이후 최신 석유화학·NCC 기사 수집 중...`,
     20
   );
 
   const discoveryPrompt = `
 당신은 대한민국 대표 나프타 분해설비(NCC) 기반 석유화학 기업인 '여천NCC'의 전사 마켓 인텔리전스 애널리스트입니다.
-오늘 날짜(KST 기준): ${todayKst}
+브리핑 게시 귀속 일자(KST 기준): ${todayKst}
+수집 대상 기사 보도 시간 범위(KST 기준): ${bounds.windowStartKstLabel} ~ ${bounds.nowKstLabel}
 
-Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최신 석유화학·에너지·NCC 산업 뉴스를 8건 이상 12건 이하로 수집하십시오.
+Google Search 도구를 사용하여 위 시간 범위 내에 보도된 최신 석유화학·에너지·NCC 산업 뉴스를 6건 이상 10건 이하로 수집하십시오.
 타겟 언론사 우선순위: EBN 산업경제, 한국경제, 매일경제, 서울경제, 연합인포맥스, 머니투데이, 이데일리, 화학저널, Reuters, ICIS, S&P Global (Chemical Week) 등 공신력 있는 매체.
+
+[일자 귀속 및 수집 범위 원칙]:
+- 전일(${bounds.yesterdayKst}) 오후 6시(18:00 KST) 이후부터 당일(${todayKst}) 자정(00:00 KST) 이전에 올라온 뉴스도 누락 없이 수집하십시오.
+- 전일 18:00 이후 보도된 기사라도 금일(${todayKst}) 실행 브리핑의 기사로 통합 업로드되므로 반드시 포함하십시오.
 
 수집 시 반드시 아래 4가지 여천NCC 선별 기준 중 하나 이상에 강하게 부합하는 기사만 찾으십시오:
 1. 글로벌 석유화학 산업 이슈: 글로벌 에틸렌/프로필렌/부타디엔 수급, 중국 증설 및 자급률 변화, 중동 정세 및 국제 유가·나프타(Naphtha) 가격 급변.
@@ -370,13 +368,15 @@ Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최�
 \`\`\`
 `;
 
-  const discoveryRes = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: discoveryPrompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-    },
-  });
+  const discoveryRes = await callWithBackoff(() =>
+    ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: discoveryPrompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    })
+  );
 
   const groundingChunks =
     discoveryRes.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
@@ -418,7 +418,7 @@ Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최�
         title: (item.title || `석유화학 산업 브리핑 #${idx + 1}`).trim(),
         sourceName: (item.sourceName || '산업 주요 매체').trim(),
         sourceUrl: resolvedUrl,
-        publishedAt: (item.publishedAt || `${todayKst} 08:00 KST`).trim(),
+        publishedAt: (item.publishedAt || '').trim(),
         viewCount:
           typeof item.viewCount === 'number' && item.viewCount >= 0
             ? item.viewCount
@@ -441,10 +441,49 @@ Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최�
     })
   );
 
+  // Strictly enforce [yesterday 18:00 KST, now] (including URL-embedded dates) and exclude already archived articles
+  const windowMatched = candidates
+    .filter((c) => isWithinBriefingWindow(c.publishedAt, bounds, new Date(), c.sourceUrl))
+    .map((c) => ({
+      ...c,
+      publishedAt: c.publishedAt || bounds.nowKstLabel,
+    }));
+
+  if (windowMatched.length === 0) {
+    throw new Error(
+      `수집 기준 시각(${bounds.windowStartKstLabel} 이후) 내에 보도된 신규 석유화학 기사를 찾지 못했습니다. 과거 기사를 재업로드하지 않고 중단했습니다.`
+    );
+  }
+
+  const isAlreadyPublishedInSavedArchive = (c: CandidateArticle): boolean => {
+    const candTitle = c.title.toLowerCase().replace(/\s+/g, '');
+    const exactMatchInArchive = allSavedArticles.some((existing) => {
+      if (c.sourceUrl && existing.sourceUrl && c.sourceUrl === existing.sourceUrl) {
+        return true;
+      }
+      const existingTitle = existing.title.toLowerCase().replace(/\s+/g, '');
+      return Boolean(candTitle && existingTitle && candTitle === existingTitle);
+    });
+    if (exactMatchInArchive) return true;
+
+    return recentLiveArticles.some(
+      (existing) =>
+        computeTokenJaccard(`${existing.title} ${existing.summary}`, `${c.title} ${c.rawBody}`) >= 55
+    );
+  };
+
+  const activeCandidates = windowMatched.filter((c) => !isAlreadyPublishedInSavedArchive(c));
+
+  if (activeCandidates.length === 0) {
+    throw new Error(
+      '검색된 기사가 모두 기존 저장 아카이브와 중복되어 새로운 기사가 없습니다.'
+    );
+  }
+
   // STAGE 2: Step 1 Content-Based Deduplication (>= 50% body overlap)
   onProgress?.(
     'deduplicating',
-    `2/3 · 수집된 ${candidates.length}건 대상 본문 유사도(50%↑) 중복 제거 및 NCC 점수 선별 중...`,
+    `2/3 · 수집된 ${activeCandidates.length}건 대상 본문 유사도(50%↑) 중복 제거 및 NCC 점수 선별 중...`,
     52
   );
 
@@ -455,7 +494,7 @@ Google Search 도구를 사용하여 최근 24~72시간 이내에 보도된 최�
 
 후보 목록:
 ${JSON.stringify(
-  candidates.map((c) => ({
+  activeCandidates.map((c) => ({
     tempId: c.tempId,
     title: c.title,
     sourceName: c.sourceName,
@@ -480,20 +519,23 @@ ${JSON.stringify(
 \`\`\`
 `;
 
-  const dedupeRes = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: dedupePrompt,
-    config: {
-      responseMimeType: 'application/json',
-    },
-  });
-
   let dedupeGroups: Array<{
     memberIds: string[];
     similarityOverlapPercent: number;
     reason: string;
   }> = [];
   try {
+    const dedupeRes = await callWithBackoff(
+      () =>
+        ai.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: dedupePrompt,
+          config: {
+            responseMimeType: 'application/json',
+          },
+        }),
+      1
+    );
     const parsedDedupe = extractJsonBlock<DedupeGroupPayload>(dedupeRes.text);
     dedupeGroups = (parsedDedupe.groups ?? [])
       .filter((g) => Array.isArray(g.memberIds) && g.memberIds.length > 0)
@@ -503,6 +545,7 @@ ${JSON.stringify(
         reason: g.reason || '핵심 본문 내용 50% 이상 중복',
       }));
   } catch {
+    // Graceful fallback to local Jaccard body-overlap clustering if Stage 2 is rate-limited
     dedupeGroups = [];
   }
 
@@ -517,7 +560,7 @@ ${JSON.stringify(
     const members: CandidateArticle[] = [];
     for (const id of group.memberIds) {
       if (!assignedIds.has(id)) {
-        const found = candidates.find((c) => c.tempId === id);
+        const found = activeCandidates.find((c) => c.tempId === id);
         if (found) {
           assignedIds.add(id);
           members.push(found);
@@ -533,7 +576,7 @@ ${JSON.stringify(
     }
   }
 
-  for (const c of candidates) {
+  for (const c of activeCandidates) {
     if (!assignedIds.has(c.tempId)) {
       let merged = false;
       for (const grp of normalizedGroups) {
@@ -606,16 +649,6 @@ ${JSON.stringify(
     80
   );
 
-  // Ensure every shortlisted article has a verified deep-link article URL (not a homepage!)
-  for (const item of shortlisted) {
-    if (!isSpecificArticleUrl(item.sourceUrl)) {
-      const exactUrl = await findExactArticleUrlForCandidate(item.title, item.sourceName);
-      if (exactUrl) {
-        item.sourceUrl = exactUrl;
-      }
-    }
-  }
-
   const factCheckPrompt = `
 당신은 석유화학 산업 전문 팩트체커이자 여천NCC 전략기획 에디터입니다.
 아래 선별된 후보 기사 ${shortlisted.length}건에 대해 Google Search 도구를 사용하여 핵심 수치(가격, 스프레드, 증설 규모, 기업명, 규제 내용, 날짜)의 사실관계에 허위나 왜곡이 없는지 교차 검증(Fact-Check)하십시오.
@@ -665,13 +698,15 @@ ${JSON.stringify(
 \`\`\`
 `;
 
-  const factCheckRes = await ai.models.generateContent({
-    model: GEMINI_MODEL,
-    contents: factCheckPrompt,
-    config: {
-      tools: [{ googleSearch: {} }],
-    },
-  });
+  const factCheckRes = await callWithBackoff(() =>
+    ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: factCheckPrompt,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    })
+  );
 
   const factCheckChunks =
     factCheckRes.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
@@ -775,20 +810,25 @@ ${JSON.stringify(
   const briefing: DailyBriefing = {
     date: todayKst,
     generatedAt: nowKstStr,
-    triggerType,
+    isSaved: false,
+    triggerType: 'manual',
     pipelineStats: {
-      rawCollected: candidates.length,
+      rawCollected: activeCandidates.length,
       duplicateClustersMerged: deduplicationLog.length,
       deduplicatedCount: deduplicatedSurvivors.length,
       factCheckPassed: finalArticles.length,
       factCheckRejected,
       finalPublished: finalArticles.length,
-      deduplicationLog,
+      deduplicationLog: deduplicationLog.slice(0, 12),
     },
     articles: finalArticles,
   };
 
-  saveBriefing(briefing, nowKstStr);
-  onProgress?.('completed', '최신 석유화학 인텔리전스 브리핑 업데이트 완료', 100);
+  saveTodayDraft(briefing, nowKstStr);
+  onProgress?.(
+    'completed',
+    `${finalArticles.length}건 수집·검증 완료 (미저장 상태 · '저장' 버튼으로 당일 확정 가능)`,
+    100
+  );
   return briefing;
 }

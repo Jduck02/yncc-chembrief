@@ -1,5 +1,5 @@
 import { Calendar, Moon, Search, Sun, X } from 'lucide-react';
-import type { PipelineStats, ScrapeJobStatus } from '../types/news';
+import type { DailyWorkflowState, PipelineStats, ScrapeJobStatus } from '../types/news';
 
 interface WorkspaceToolbarProps {
   selectedDate: string;
@@ -10,9 +10,11 @@ interface WorkspaceToolbarProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   scheduler: ScrapeJobStatus;
+  workflow: DailyWorkflowState;
   pipelineStats?: PipelineStats;
   generatedAt?: string;
-  triggerType?: 'scheduled_09kst' | 'manual' | 'curated_seed';
+  isSaved?: boolean;
+  triggerType?: 'manual' | 'curated_seed' | 'scheduled_auto' | 'scheduled_09kst';
 }
 
 export function WorkspaceToolbar({
@@ -24,16 +26,24 @@ export function WorkspaceToolbar({
   theme,
   onToggleTheme,
   scheduler,
+  workflow,
   pipelineStats,
   generatedAt,
+  isSaved,
   triggerType,
 }: WorkspaceToolbarProps) {
   const triggerLabel =
-    triggerType === 'scheduled_09kst'
-      ? '매일 09:00 KST 정기 수집'
-      : triggerType === 'manual'
-        ? '실시간 AI 검색 수집'
-        : '여천NCC 기본 큐레이션 브리핑';
+    triggerType === 'curated_seed'
+      ? '여천NCC 기본 아카이브 브리핑'
+      : isSaved === false
+        ? '수동 작업수행 수집 (미저장 임시 상태)'
+        : '수동 작업수행 · 당일 저장 확정';
+
+  const workflowStatusLabel = workflow.isSavedToday
+    ? `${workflow.todayKst} 저장 완료 · 익일까지 조회 전용`
+    : workflow.hasDraftToday
+      ? `${workflow.todayKst} 수집 완료 · 저장 대기 중`
+      : `${workflow.todayKst} 작업수행 대기 중`;
 
   return (
     <section
@@ -41,7 +51,7 @@ export function WorkspaceToolbar({
       className="border-b border-[#1F1F23]/12 dark:border-[#F4EFE6]/10 bg-[#FAF7F2] dark:bg-[#1F1F23]/65"
     >
       <div className="mx-auto max-w-[1280px] px-6 py-6 space-y-4">
-        {/* Top Row: Hero Header & Schedule Metadata */}
+        {/* Top Row: Hero Header & Workflow Metadata */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2 text-xs text-[#1F1F23]/65 dark:text-[#F4EFE6]/60 font-mono tabular-nums">
@@ -64,7 +74,7 @@ export function WorkspaceToolbar({
 
           <div className="flex items-center gap-3 self-start lg:self-auto">
             <div className="text-xs text-[#1F1F23]/65 dark:text-[#F4EFE6]/60 font-mono tabular-nums text-right hidden sm:block">
-              다음 정기 스크랩: {scheduler.nextScheduledRunKst}
+              {workflowStatusLabel}
             </div>
             <button
               type="button"

@@ -1,7 +1,6 @@
 import type { DailyBriefing, FallbackImageKey } from '../src/types/news.ts';
-import { getKstDateString, getOffsetKstDateString } from './time.ts';
 
-export const SEED_SCHEMA_VERSION = 4;
+export const SEED_SCHEMA_VERSION = 5;
 
 export const FALLBACK_IMAGE_MAP: Record<FallbackImageKey, string> = {
   ncc_plant_night: '/src/assets/images/ncc_plant_night_1795047558031.jpg',
@@ -12,13 +11,11 @@ export const FALLBACK_IMAGE_MAP: Record<FallbackImageKey, string> = {
 };
 
 export function createSeedBriefings(): DailyBriefing[] {
-  const todayKst = getKstDateString();
-  const yesterdayKst = getOffsetKstDateString(-1);
-  const [yNum, mNum] = todayKst.split('-').map(Number);
-  const prevMonthDateObj = new Date(Date.UTC(yNum, mNum - 2, 24));
-  const prevMonthDate = prevMonthDateObj.toISOString().slice(0, 10);
-  const prevMonthEarlierObj = new Date(Date.UTC(yNum, mNum - 2, 14));
-  const prevMonthEarlierDate = prevMonthEarlierObj.toISOString().slice(0, 10);
+  // Fixed historical archive dates matching the actual curated articles (never dynamically re-dated to today)
+  const todayKst = '2026-11-18';
+  const yesterdayKst = '2026-11-17';
+  const prevMonthDate = '2026-10-24';
+  const prevMonthEarlierDate = '2026-10-14';
 
   const todayBriefing: DailyBriefing = {
     date: todayKst,
