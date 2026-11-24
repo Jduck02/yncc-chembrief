@@ -12,13 +12,14 @@ const TARGET_OUTLETS = [
   '한국경제',
   '매일경제',
   '서울경제',
-  '연합인포맥스',
+  '파이낸셜뉴스',
+  '연합뉴스',
+  '뉴시스',
+  '뉴스1',
   '머니투데이',
   '이데일리',
+  '연합인포맥스',
   '화학저널',
-  'Reuters',
-  'ICIS',
-  'S&P Global (Chemical Week)',
 ];
 
 const SELECTION_CRITERIA = [
@@ -175,10 +176,10 @@ export function PipelineTransparencyPanel({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm font-bold text-[#0B0B0D] dark:text-[#F4EFE6]">
                         <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-                        <span>Step 2. Google Search 교차 검증 팩트체크</span>
+                        <span>Step 2. 원문 HTTP·보도일시 교차 검증 (API Key 불필요)</span>
                       </div>
                       <p className="text-xs leading-relaxed text-[#1F1F23]/75 dark:text-[#F4EFE6]/70">
-                        선별된 기사의 핵심 수치(나프타·에틸렌 가격, 스프레드, 증설 규모, 기업명, 규제 내용)를 Google Search Tool을 통해 복수 출처와 교차 검증한 뒤 통과 기사만 업로드합니다.
+                        외부 API 키 없이 네이버 뉴스·다음 뉴스·주요 경제지 RSS에서 실시간 원문을 직접 조회(HTTP 200)하고, 보도일시 기준과 타 매체 동시 보도 여부를 교차 검증한 뒤 통과 기사만 업로드합니다.
                       </p>
                       {briefing && (
                         <div className="flex items-center gap-3 pt-1 text-xs font-mono tabular-nums text-[#1F1F23]/75 dark:text-[#F4EFE6]/75">

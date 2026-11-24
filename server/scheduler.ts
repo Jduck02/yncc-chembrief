@@ -63,23 +63,10 @@ class ManualScrapeRunner {
 
       return briefing;
     } catch (err) {
-      const rawMessage =
+      const message =
         err instanceof Error
           ? err.message
           : '작업수행 중 알 수 없는 오류가 발생했습니다.';
-
-      let message = rawMessage;
-      if (rawMessage.includes('429') || rawMessage.includes('RESOURCE_EXHAUSTED')) {
-        message =
-          'Gemini API 할당량(무료 티어 또는 분당 호출 한도)이 초과되었습니다 (429 RESOURCE_EXHAUSTED). AI Studio의 Settings > Secrets 패널에서 결제가 활성화된 유료 API 키를 선택하거나 Google AI Studio(ai.dev/rate-limit)에서 사용량·결제 플랜을 확인한 뒤 잠시 후 다시 실행해 주세요.';
-      } else if (
-        rawMessage.includes('403') ||
-        rawMessage.includes('PERMISSION_DENIED') ||
-        rawMessage.includes('API_KEY_INVALID')
-      ) {
-        message =
-          'Gemini API 키가 유효하지 않거나 권한이 없습니다. AI Studio의 Settings > Secrets 패널(또는 호스팅 환경변수 GEMINI_API_KEY)을 확인해 주세요.';
-      }
 
       this.status = {
         ...this.status,
